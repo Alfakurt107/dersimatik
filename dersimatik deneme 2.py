@@ -3,16 +3,9 @@ from kivy.uix.label import Label
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
-from kivy.properties import StringProperty, NumericProperty
-from kivy.uix.widget import Widget
-from kivy.uix.image import AsyncImage
-from kivy.loader import Loader
-from kivy.uix.image import Image
-from kivy.core.window import Window
 
-#turkce_not_deg = NumericProperty(0)
+
 
 class Plan(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -30,6 +23,10 @@ class Plan(Screen):
 class Notlar(Screen):
     def __init__(self, screen_manager, **kwargs):
         super().__init__(**kwargs)
+        self.not_mod = True
+        self.istenilen_not=""
+        self.gercek_not=""
+        
         layout = FloatLayout()
         label1 = Label(text="Türkçe", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.7})
         label2 = Label(text="Matematik", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.6})
@@ -38,15 +35,28 @@ class Notlar(Screen):
         label5 = Label(text="Din", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.3})
         label6 = Label(text="Yabancı Dil", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.2})
         geri = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x":0.1, "center_y":0.9})
-        turkce_not = Label(text="turkce_not_deg", size_hint=(0.1,0.1), pos_hint={"center_x":0.2, "center_y":0.7})
-        self.turkce_not_deg = TextInput(text="")
 
         geri.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
         
-        #if(101 > turkce_not_deg > -4):
-        #    layout.add_widget(turkce_not)
-        #else:
-        #    layout.add_widget(self.turkce_not_deg)
+
+        def not_sabiti():
+            if self.not_mod:
+                gercek_not = TextInput(Text="gerçek not", size_hint=(0.1,0.1), pos_hint={"center_x":0.2, "center_y":0.6})
+                istenilen_not = TextInput(Text="istenilen not", size_hint=(0.1,0.1), pos_hint={"center_x":0.3, "center_y":0.6})
+                kaydet= Button(text="kaydet", size_hint=(0.1, 0.1), pos_hint={"center_x":0.4, "center_y":0.6})
+                layout.add_widget(gercek_not)
+                layout.add_widget(istenilen_not)
+                layout.add_widget(kaydet)
+                kaydet.bind(on_release=lambda x: setattr(screen_manager, "self.not_mod = False"))
+            else:
+                gercek_not_sayi = Label(text="gerçek not:"+gercek_not, size_hint=(0.1,0.1), pos_hint={"center_x":0.2, "center_y":0.6})
+                istenilen_not_sayi = Label(text="istenilen not:"+istenilen_not, size_hint=(0.1,0.1), pos_hint={"center_x":0.3, "center_y":0.6})
+                düzenle= Button(text="düzenle", size_hint=(0.1, 0.1), pos_hint={"center_x":0.4, "center_y":0.6})
+                layout.add_widget(gercek_not_sayi)
+                layout.add_widget(istenilen_not_sayi)
+                layout.add_widget(düzenle)
+                düzenle.bind(on_release=lambda x: setattr(screen_manager, "self.not_mod = True"))
+
         
         layout.add_widget(label1)
         layout.add_widget(label2)
@@ -104,7 +114,6 @@ class Ders(Screen):
         layout.add_widget(yabanci_dil)
         layout.add_widget(geri2)
         self.add_widget(layout)
-        
 
 class MenuScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -129,10 +138,7 @@ class MenuScreen(Screen):
         layout.add_widget(tablo)
         self.add_widget(layout)
 
-
 class Dersimatik(App):
-
-    
     def build(self):
         self.screen_manager = ScreenManager(transition=SlideTransition())
         self.screen_manager.add_widget(MenuScreen(self.screen_manager, name="Menu"))
@@ -142,7 +148,6 @@ class Dersimatik(App):
         self.screen_manager.add_widget(Bot(self.screen_manager, name="Bot"))
         self.screen_manager.add_widget(Tablo(self.screen_manager, name="Tablo"))
         self.screen_manager.current = "Menu"
-        
         return self.screen_manager
 
 if __name__ == "__main__":
