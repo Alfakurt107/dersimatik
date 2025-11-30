@@ -5,8 +5,6 @@ from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.uix.textinput import TextInput
 
-
-
 class Plan(Screen):
     def __init__(self, screen_manager, **kwargs):
         super().__init__(**kwargs)
@@ -23,49 +21,118 @@ class Plan(Screen):
 class Notlar(Screen):
     def __init__(self, screen_manager, **kwargs):
         super().__init__(**kwargs)
-        self.not_mod = True
-        self.istenilen_not=""
-        self.gercek_not=""
-        
-        layout = FloatLayout()
+        self.screen_manager = screen_manager
+        self.edit_mode_mat = True
+        self.edit_mode_turkce = True
+        self.gercek_not_mat = ""
+        self.istenen_not_mat = ""
+        self.gercek_not_turkce = ""
+        self.istenen_not_turkce = ""
+
+        self.layout = FloatLayout()
+
+        # Diğer dersler:
         label1 = Label(text="Türkçe", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.7})
         label2 = Label(text="Matematik", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.6})
         label3 = Label(text="Fen", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.5})
         label4 = Label(text="Sosyal", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.4})
         label5 = Label(text="Din", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.3})
         label6 = Label(text="Yabancı Dil", size_hint=(0.1,0.1), pos_hint={"center_x":0.1, "center_y":0.2})
-        geri = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x":0.1, "center_y":0.9})
 
-        geri.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
+        self.layout.add_widget(label1)
+        self.layout.add_widget(label2)
+        self.layout.add_widget(label3)
+        self.layout.add_widget(label4)
+        self.layout.add_widget(label5)
+        self.layout.add_widget(label6)
         
+        # Geri butonu
+        self.geri = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x":0.1, "center_y":0.9})
+        self.geri.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
+        self.layout.add_widget(self.geri)
 
-        def not_sabiti():
-            if self.not_mod:
-                gercek_not = TextInput(Text="gerçek not", size_hint=(0.1,0.1), pos_hint={"center_x":0.2, "center_y":0.6})
-                istenilen_not = TextInput(Text="istenilen not", size_hint=(0.1,0.1), pos_hint={"center_x":0.3, "center_y":0.6})
-                kaydet= Button(text="kaydet", size_hint=(0.1, 0.1), pos_hint={"center_x":0.4, "center_y":0.6})
-                layout.add_widget(gercek_not)
-                layout.add_widget(istenilen_not)
-                layout.add_widget(kaydet)
-                kaydet.bind(on_release=lambda x: setattr(screen_manager, "self.not_mod = False"))
-            else:
-                gercek_not_sayi = Label(text="gerçek not:"+gercek_not, size_hint=(0.1,0.1), pos_hint={"center_x":0.2, "center_y":0.6})
-                istenilen_not_sayi = Label(text="istenilen not:"+istenilen_not, size_hint=(0.1,0.1), pos_hint={"center_x":0.3, "center_y":0.6})
-                düzenle= Button(text="düzenle", size_hint=(0.1, 0.1), pos_hint={"center_x":0.4, "center_y":0.6})
-                layout.add_widget(gercek_not_sayi)
-                layout.add_widget(istenilen_not_sayi)
-                layout.add_widget(düzenle)
-                düzenle.bind(on_release=lambda x: setattr(screen_manager, "self.not_mod = True"))
+        # Matematik için inputlar
+        self.gercek_input_mat = TextInput(hint_text="Asıl Not", input_filter="int", size_hint=(0.13, 0.07), pos_hint={"center_x":0.30, "center_y":0.6}, multiline=False)
+        self.istenen_input_mat = TextInput(hint_text="İstenilen Not", input_filter="int", size_hint=(0.15, 0.07), pos_hint={"center_x":0.48, "center_y":0.6}, multiline=False)
+        self.layout.add_widget(self.gercek_input_mat)
+        self.layout.add_widget(self.istenen_input_mat)
+        # Kaydet/duzenle butonu
+        self.kaydet_btn_mat = Button(text="Kaydet", size_hint=(0.13, 0.07), pos_hint={"center_x":0.65, "center_y":0.6})
+        self.kaydet_btn_mat.bind(on_release=self.mat_mod)
+        self.layout.add_widget(self.kaydet_btn_mat)
+
+        # Türkçe için inputlar
+        self.gercek_input_turkce = TextInput(hint_text="Asıl Not", input_filter="int", size_hint=(0.13, 0.07), pos_hint={"center_x":0.30, "center_y":0.7}, multiline=False)
+        self.istenen_input_turkce = TextInput(hint_text="İstenilen Not", input_filter="int", size_hint=(0.15, 0.07), pos_hint={"center_x":0.48, "center_y":0.7}, multiline=False)
+        self.layout.add_widget(self.gercek_input_turkce)
+        self.layout.add_widget(self.istenen_input_turkce)
+        # Kaydet/duzenle butonu
+        self.kaydet_btn_turkce = Button(text="Kaydet", size_hint=(0.13, 0.07), pos_hint={"center_x":0.65, "center_y":0.7})
+        self.kaydet_btn_turkce.bind(on_release=self.turkce_mod)
+        self.layout.add_widget(self.kaydet_btn_turkce)
 
         
-        layout.add_widget(label1)
-        layout.add_widget(label2)
-        layout.add_widget(label3)
-        layout.add_widget(label4)
-        layout.add_widget(label5)
-        layout.add_widget(label6)
-        layout.add_widget(geri)
-        self.add_widget(layout)
+        self.add_widget(self.layout)
+
+    def mat_mod(self, instance):
+        self.layout.remove_widget(self.kaydet_btn_mat)
+        if self.edit_mode_mat:
+            # Notları kaydet ve inputları kaldır, yerlerine değerleri koy
+            self.gercek_not_mat = self.gercek_input_mat.text if self.gercek_input_mat.text != "" else "0"
+            self.istenen_not_mat = self.istenen_input_mat.text if self.istenen_input_mat.text != "" else "0"
+            self.layout.remove_widget(self.gercek_input_mat)
+            self.layout.remove_widget(self.istenen_input_mat)
+
+            self.asil_label = Label(text=f"Gerçek not: {self.gercek_not_mat}", size_hint=(0.13, 0.07), pos_hint={"center_x":0.30, "center_y":0.6})
+            self.istenen_label = Label(text=f"İstenen gerçek: {self.istenen_not_mat}", size_hint=(0.15, 0.07), pos_hint={"center_x":0.48, "center_y":0.6})
+            self.layout.add_widget(self.asil_label)
+            self.layout.add_widget(self.istenen_label)
+
+            self.kaydet_btn_mat.text = "Düzenle"
+            self.layout.add_widget(self.kaydet_btn_mat)
+            self.edit_mode_mat = False
+        else:
+            # Tekrar input aç, label'ları kaldır
+            self.layout.remove_widget(self.asil_label)
+            self.layout.remove_widget(self.istenen_label)
+            self.gercek_input_mat.text = self.gercek_not_mat
+            self.istenen_input_mat.text = self.istenen_not_mat
+
+            self.layout.add_widget(self.gercek_input_mat)
+            self.layout.add_widget(self.istenen_input_mat)
+            self.kaydet_btn_mat.text = "Kaydet"
+            self.layout.add_widget(self.kaydet_btn_mat)
+            self.edit_mode_mat = True
+
+    def turkce_mod(self, instance):
+        self.layout.remove_widget(self.kaydet_btn_turkce)
+        if self.edit_mode_turkce:
+            # Notları kaydet ve inputları kaldır, yerlerine değerleri koy
+            self.gercek_not_turkce = self.gercek_input_turkce.text if self.gercek_input_turkce.text != "" else "0"
+            self.istenen_not_turkce = self.istenen_input_turkce.text if self.istenen_input_turkce.text != "" else "0"
+            self.layout.remove_widget(self.gercek_input_turkce)
+            self.layout.remove_widget(self.istenen_input_turkce)
+
+            self.asil_label = Label(text=f"Gerçek not: {self.gercek_not_turkce}", size_hint=(0.13, 0.07), pos_hint={"center_x":0.30, "center_y":0.7})
+            self.istenen_label = Label(text=f"İstenen gerçek: {self.istenen_not_turkce}", size_hint=(0.15, 0.07), pos_hint={"center_x":0.48, "center_y":0.7})
+            self.layout.add_widget(self.asil_label)
+            self.layout.add_widget(self.istenen_label)
+
+            self.kaydet_btn_turkce.text = "Düzenle"
+            self.layout.add_widget(self.kaydet_btn_turkce)
+            self.edit_mode_turkce = False
+        else:
+            # Tekrar input aç, label'ları kaldır
+            self.layout.remove_widget(self.asil_label)
+            self.layout.remove_widget(self.istenen_label)
+            self.gercek_input_turkce.text = self.gercek_not_turkce
+            self.istenen_input_turkce.text = self.istenen_not_turkce
+
+            self.layout.add_widget(self.gercek_input_turkce)
+            self.layout.add_widget(self.istenen_input_turkce)
+            self.kaydet_btn_turkce.text = "Kaydet"
+            self.layout.add_widget(self.kaydet_btn_turkce)
+            self.edit_mode_turkce = True
 
 class Bot(Screen):
     def __init__(self, screen_manager, **kwargs):
