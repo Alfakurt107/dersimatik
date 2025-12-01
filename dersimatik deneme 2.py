@@ -206,6 +206,7 @@ class Diger(Screen):
         self.edit_mode_diger = True
         self.gercek_not_diger = ""
         self.istenen_not_diger = ""
+        self.diger_ders_ad = ""
 
         self.layout = FloatLayout()
         # Geri butonu
@@ -217,8 +218,10 @@ class Diger(Screen):
         # Diğer dersler için inputlar
         self.gercek_input_diger = TextInput(hint_text="Asıl Not", input_filter="int", size_hint=(0.13, 0.07),pos_hint={"center_x": 0.30, "center_y": 0.7}, multiline=False)
         self.istenen_input_diger = TextInput(hint_text="İstenilen Not", input_filter="int", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.48, "center_y": 0.7}, multiline=False)
+        self.diger_input_ad = TextInput(hint_text="Ders Adı", input_filter="", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.12, "center_y": 0.7}, multiline=False)
         self.layout.add_widget(self.gercek_input_diger)
         self.layout.add_widget(self.istenen_input_diger)
+        self.layout.add_widget(self.diger_input_ad)
         # Kaydet/duzenle butonu
         self.kaydet_btn_diger = Button(text="Kaydet", size_hint=(0.13, 0.07),pos_hint={"center_x": 0.65, "center_y": 0.7})
         self.kaydet_btn_diger.bind(on_release=self.diger_mod)
@@ -230,13 +233,17 @@ class Diger(Screen):
             # Notları kaydet ve inputları kaldır, yerlerine değerleri koy
             self.gercek_not_diger = self.gercek_input_diger.text if self.gercek_input_diger.text != "" else "0"
             self.istenen_not_diger = self.istenen_input_diger.text if self.istenen_input_diger.text != "" else "0"
+            self.diger_ders_ad = self.diger_input_ad.text if self.diger_input_ad.text != "" else "Ders Adı"
             self.layout.remove_widget(self.gercek_input_diger)
             self.layout.remove_widget(self.istenen_input_diger)
+            self.layout.remove_widget(self.diger_input_ad)
 
             self.asil_label = Label(text=f"Gerçek not: {self.gercek_not_diger}", size_hint=(0.13, 0.07),pos_hint={"center_x": 0.30, "center_y": 0.7})
             self.istenen_label = Label(text=f"İstenen gerçek: {self.istenen_not_diger}", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.48, "center_y": 0.7})
+            self.diger_ders_ad = Label(text=f"{self.istenen_not_diger}", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.12, "center_y": 0.7})
             self.layout.add_widget(self.asil_label)
             self.layout.add_widget(self.istenen_label)
+            self.layout.add_widget(self.diger_ders_ad)
 
             self.kaydet_btn_diger.text = "Düzenle"
             self.layout.add_widget(self.kaydet_btn_diger)
@@ -245,13 +252,16 @@ class Diger(Screen):
             # Tekrar input aç, label'ları kaldır
             self.layout.remove_widget(self.asil_label)
             self.layout.remove_widget(self.istenen_label)
+            self.layout.remove_widget(self.diger_ders_ad)
             self.gercek_input_diger.text = self.gercek_not_diger
             self.istenen_input_diger.text = self.istenen_not_diger
+            self.diger_input_ad.text = self.diger_ders_ad
 
             self.layout.add_widget(self.gercek_input_diger)
             self.layout.add_widget(self.istenen_input_diger)
+            self.layout.add_widget(self.istenen_input_diger)
             self.kaydet_btn_diger.text = "Kaydet"
-            self.layout.add_widget(self.kaydet_btn_diger)
+            self.layout.add_widget(self.diger_input_ad)
             self.edit_mode_diger = True
 
 
