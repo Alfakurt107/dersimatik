@@ -1,24 +1,149 @@
+import os
 from kivy.app import App
 from kivy.uix.label import Label
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.uix.textinput import TextInput
+from kivy.uix.image import Image
+from kivy.uix.popup import Popup
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.logger import Logger
+from kivy.utils import get_color_from_hex
+from kivy.core.window import Window
 
+# Mobil benzeri bir görünüm için pencere boyutunu ayarla (isteğe bağlı)
+# Window.size = (400, 700) 
+
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class Plan(Screen):
     def __init__(self, screen_manager, **kwargs):
         super().__init__(**kwargs)
-        layout = FloatLayout()
-        label2 = Label(text="Süre:", size_hint=(0.2, 0.2), pos_hint={"center_x": 0.2, "center_y": 0.3})
-        label3 = Label(text="mola:", size_hint=(0.2, 0.2), pos_hint={"center_x": 0.2, "center_y": 0.1})
-        geri1 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
-        geri1.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
-        layout.add_widget(label2)
-        layout.add_widget(label3)
-        layout.add_widget(geri1)
-        self.add_widget(layout)
+        self.screen_manager = screen_manager
+        
+        # --- Ana Dikey Düzenleyici (BoxLayout) ---
+        # Sayfayı Geri, Resim ve Label alanlarına böler.
+        main_layout = BoxLayout(orientation='vertical')
+        
+        # 1. Üst Kısım (Geri Butonu) - Sayfanın %10'u
+        top_layout = BoxLayout(size_hint_y=0.1, padding=10)
+        self.geri1 = Button(
+            text="Geri", 
+            size_hint=(0.2, 1), 
+            background_color=get_color_from_hex('#4CAF50')
+        )
+        self.geri1.bind(on_release=lambda x: setattr(self.screen_manager, "current", "Menu"))
+        top_layout.add_widget(self.geri1)
+        top_layout.add_widget(Label(text="Plan Görüntüsü", font_size='20sp', color=get_color_from_hex('#333333')))
+        
+        # 2. Orta Kısım (Resim Yükleme/Görüntüleme) - Sayfanın %70'i
+        self.image_container = BoxLayout(
+            orientation='vertical', 
+            size_hint_y=0.7, 
+            padding=20, 
+            spacing=10
+        )
+        
+        # Resim Widget'ı (Başlangıçta boş, bir resim seçildiğinde dolacak)
+        self.loaded_image = Image(
+            source='', # Boş kaynak
+            allow_stretch=True, 
+            keep_ratio=True,
+            size_hint=(1, 0.9)
+        )
+        
+        # Resim Yükleme/Değiştirme Butonu
+        self.yukleme_butonu = Button(
+            text="Plan Resmi Yükle / Değiştir", 
+            size_hint=(0.9, 0.1), 
+            pos_hint={'center_x': 0.5},
+            background_color=get_color_from_hex('#2196F3'),
+            color=(1, 1, 1, 1)
+        )
+        self.yukleme_butonu.bind(on_release=self.show_load_dialog)
 
+        self.image_container.add_widget(self.loaded_image)
+        self.image_container.add_widget(self.yukleme_butonu)
+
+        # 3. Alt Kısım (Label'lar) - Sayfanın %20'si
+        # Orijinal kodunuz FloatLayout kullandığı için burada da FloatLayout kullanıyoruz
+        bottom_layout = FloatLayout(size_hint_y=0.2)
+        
+        # Orijinal label'ların pos_hint değerleri, bu küçük alana göre ayarlandı
+        self.label2 = Label(
+            text="Süre:", 
+            size_hint=(0.4, 0.7), 
+            pos_hint={"center_x": 0.2, "center_y": 0.85},
+            color=get_color_from_hex("#7F1B75")
+        )
+        self.label3 = Label(
+            text="Mola:", 
+            size_hint=(0.4, 0.7), 
+            pos_hint={"center_x": 0.2, "center_y": 0.40},
+            color=get_color_from_hex('#7F1B75')
+        )
+        
+        bottom_layout.add_widget(self.label2)
+        bottom_layout.add_widget(self.label3)
+
+        # Ana düzene tüm kısımları ekle
+        main_layout.add_widget(top_layout)
+        main_layout.add_widget(self.image_container)
+        main_layout.add_widget(bottom_layout)
+        
+        self.add_widget(main_layout)
+
+    def show_load_dialog(self, instance):
+        # Dosya seçimi için bir Pop-up penceresi oluşturur
+        
+        content = BoxLayout(orientation='vertical', spacing=10, padding=10)
+        
+        # File Chooser (Sadece resim dosyalarını filtreler)
+        file_chooser = FileChooserIconView(
+            filters=['*.png', '*.jpg', '*.jpeg'],
+            path=os.path.expanduser('~') # Başlangıç klasörü (Kullanıcının ana dizini)
+        )
+        content.add_widget(file_chooser)
+        
+        # Butonlar
+        button_layout = BoxLayout(size_hint_y=None, height=50, spacing=10)
+        
+        yukleme_btn = Button(text="Resmi Yükle", background_color=get_color_from_hex('#4CAF50'))
+        iptal_btn = Button(text="İptal", background_color=get_color_from_hex('#F44336'))
+        
+        button_layout.add_widget(yukleme_btn)
+        button_layout.add_widget(iptal_btn)
+        content.add_widget(button_layout)
+        
+        self.popup = Popup(title="Plan Resmi Seç", content=content, size_hint=(0.9, 0.9))
+        
+        # Buton binding'leri
+        yukleme_btn.bind(on_release=lambda x: self.load_image(file_chooser.selection))
+        iptal_btn.bind(on_release=self.popup.dismiss)
+
+        self.popup.open()
+
+    def load_image(self, selection):
+        # Seçilen dosyayı işler
+        self.popup.dismiss()
+        if selection:
+            image_path = selection[0]
+            Logger.info(f"Image selected: {image_path}")
+            
+            # Resim widget'ının kaynağını seçilen dosya yolu ile güncelle
+            self.loaded_image.source = image_path
+            
+            # Kivy'nin yeni kaynağı hemen yüklemesini sağlar
+            self.loaded_image.reload()
+            
+            # Buton metnini değiştirme işlemi için güncelle
+            self.yukleme_butonu.text = "Resmi Değiştir"
+        else:
+            Logger.info("No file selected.")
+
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class Notlar(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -52,8 +177,8 @@ class Notlar(Screen):
         self.button6 = Button(text="Yabancı dil dersleri", size_hint=(0.2, 0.1), pos_hint={"center_x": 0.4, "center_y": 0.2})
         self.button6.bind(on_release=lambda x: setattr(screen_manager, "current", "Yabanci_dil"))
         self.layout.add_widget(self.button6)
-        label7 = Label(text="Diger...", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.1})
-        self.button7 = Button(text="Diger dersler", size_hint=(0.2, 0.1),pos_hint={"center_x": 0.4, "center_y": 0.1})
+        label7 = Label(text="Diğer...", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.1})
+        self.button7 = Button(text="Diğer dersler", size_hint=(0.2, 0.1),pos_hint={"center_x": 0.4, "center_y": 0.1})
         self.button7.bind(on_release=lambda x: setattr(screen_manager, "current", "Diger"))
         self.layout.add_widget(self.button7)
 
@@ -67,7 +192,7 @@ class Notlar(Screen):
 
 
         # Geri butonu
-        self.geri = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        self.geri = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         self.geri.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
         self.layout.add_widget(self.geri)
 
@@ -106,7 +231,7 @@ class Notlar(Screen):
             self.layout.remove_widget(self.istenen_input_mat)
 
             self.asil_label = Label(text=f"Gerçek not: {self.gercek_not_mat}", size_hint=(0.13, 0.07),
-                                    pos_hint={"center_x": 0.30, "center_y": 0.6})
+                                     pos_hint={"center_x": 0.30, "center_y": 0.6})
             self.istenen_label = Label(text=f"İstenen gerçek: {self.istenen_not_mat}", size_hint=(0.15, 0.07),
                                        pos_hint={"center_x": 0.48, "center_y": 0.6})
             self.layout.add_widget(self.asil_label)
@@ -138,7 +263,7 @@ class Notlar(Screen):
             self.layout.remove_widget(self.istenen_input_turkce)
 
             self.asil_label = Label(text=f"Gerçek not: {self.gercek_not_turkce}", size_hint=(0.13, 0.07),
-                                    pos_hint={"center_x": 0.30, "center_y": 0.7})
+                                     pos_hint={"center_x": 0.30, "center_y": 0.7})
             self.istenen_label = Label(text=f"İstenen gerçek: {self.istenen_not_turkce}", size_hint=(0.15, 0.07),
                                        pos_hint={"center_x": 0.48, "center_y": 0.7})
             self.layout.add_widget(self.asil_label)
@@ -165,7 +290,7 @@ class Fen(Screen):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
         # Geri butonu
-        self.geri1 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        self.geri1 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         self.geri1.bind(on_release=lambda x: setattr(screen_manager, "current", "Notlar"))
         self.layout.add_widget(self.geri1)
         self.add_widget(self.layout)
@@ -175,7 +300,7 @@ class Sosyal(Screen):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
         # Geri butonu
-        self.geri2 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        self.geri2 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         self.geri2.bind(on_release=lambda x: setattr(screen_manager, "current", "Notlar"))
         self.layout.add_widget(self.geri2)
         self.add_widget(self.layout)
@@ -185,7 +310,7 @@ class Din(Screen):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
         # Geri butonu
-        self.geri3 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        self.geri3 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         self.geri3.bind(on_release=lambda x: setattr(screen_manager, "current", "Notlar"))
         self.layout.add_widget(self.geri3)
         self.add_widget(self.layout)
@@ -195,7 +320,7 @@ class Yabanci_dil(Screen):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
         # Geri butonu
-        self.geri4 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        self.geri4 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         self.geri4.bind(on_release=lambda x: setattr(screen_manager, "current", "Notlar"))
         self.layout.add_widget(self.geri4)
         self.add_widget(self.layout)
@@ -210,7 +335,7 @@ class Diger(Screen):
 
         self.layout = FloatLayout()
         # Geri butonu
-        self.geri5 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        self.geri5 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         self.geri5.bind(on_release=lambda x: setattr(screen_manager, "current", "Notlar"))
         self.layout.add_widget(self.geri5)
         self.add_widget(self.layout)
@@ -218,10 +343,10 @@ class Diger(Screen):
         # Diğer dersler için inputlar
         self.gercek_input_diger = TextInput(hint_text="Asıl Not", input_filter="int", size_hint=(0.13, 0.07),pos_hint={"center_x": 0.30, "center_y": 0.7}, multiline=False)
         self.istenen_input_diger = TextInput(hint_text="İstenilen Not", input_filter="int", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.48, "center_y": 0.7}, multiline=False)
-        self.diger_input_ad = TextInput(hint_text="Ders Adı", input_filter="", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.12, "center_y": 0.7}, multiline=False)
+        label = Label(text="Bilişim", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.12, "center_y": 0.7})
         self.layout.add_widget(self.gercek_input_diger)
         self.layout.add_widget(self.istenen_input_diger)
-        self.layout.add_widget(self.diger_input_ad)
+        self.layout.add_widget(label)
         # Kaydet/duzenle butonu
         self.kaydet_btn_diger = Button(text="Kaydet", size_hint=(0.13, 0.07),pos_hint={"center_x": 0.65, "center_y": 0.7})
         self.kaydet_btn_diger.bind(on_release=self.diger_mod)
@@ -233,17 +358,13 @@ class Diger(Screen):
             # Notları kaydet ve inputları kaldır, yerlerine değerleri koy
             self.gercek_not_diger = self.gercek_input_diger.text if self.gercek_input_diger.text != "" else "0"
             self.istenen_not_diger = self.istenen_input_diger.text if self.istenen_input_diger.text != "" else "0"
-            self.diger_ders_ad = self.diger_input_ad.text if self.diger_input_ad.text != "" else "Ders Adı"
             self.layout.remove_widget(self.gercek_input_diger)
             self.layout.remove_widget(self.istenen_input_diger)
-            self.layout.remove_widget(self.diger_input_ad)
 
             self.asil_label = Label(text=f"Gerçek not: {self.gercek_not_diger}", size_hint=(0.13, 0.07),pos_hint={"center_x": 0.30, "center_y": 0.7})
             self.istenen_label = Label(text=f"İstenen gerçek: {self.istenen_not_diger}", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.48, "center_y": 0.7})
-            self.diger_ders_ad = Label(text=f"{self.istenen_not_diger}", size_hint=(0.15, 0.07),pos_hint={"center_x": 0.12, "center_y": 0.7})
             self.layout.add_widget(self.asil_label)
             self.layout.add_widget(self.istenen_label)
-            self.layout.add_widget(self.diger_ders_ad)
 
             self.kaydet_btn_diger.text = "Düzenle"
             self.layout.add_widget(self.kaydet_btn_diger)
@@ -252,30 +373,29 @@ class Diger(Screen):
             # Tekrar input aç, label'ları kaldır
             self.layout.remove_widget(self.asil_label)
             self.layout.remove_widget(self.istenen_label)
-            self.layout.remove_widget(self.diger_ders_ad)
             self.gercek_input_diger.text = self.gercek_not_diger
             self.istenen_input_diger.text = self.istenen_not_diger
-            self.diger_input_ad.text = self.diger_ders_ad
 
             self.layout.add_widget(self.gercek_input_diger)
             self.layout.add_widget(self.istenen_input_diger)
-            self.layout.add_widget(self.istenen_input_diger)
             self.kaydet_btn_diger.text = "Kaydet"
-            self.layout.add_widget(self.diger_input_ad)
+            self.layout.add_widget(self.kaydet_btn_diger)
             self.edit_mode_diger = True
 
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class Bot(Screen):
     def __init__(self, screen_manager, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
         label = Label(text="Bot", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.5, "center_y": 0.5})
-        geri = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        geri = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         geri.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
         layout.add_widget(label)
         layout.add_widget(geri)
         self.add_widget(layout)
 
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class Tablo(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -284,7 +404,7 @@ class Tablo(Screen):
         label4 = Label(text="En yüksek:", size_hint=(0.2, 0.1), pos_hint={"center_x": 0.2, "center_y": 0.3})
         label5 = Label(text="En düşük:", size_hint=(0.2, 0.1), pos_hint={"center_x": 0.2, "center_y": 0.2})
         label6 = Label(text="Başarı(%):", size_hint=(0.2, 0.1), pos_hint={"center_x": 0.2, "center_y": 0.1})
-        button15 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        button15 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         button15.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
         layout.add_widget(label4)
         layout.add_widget(label5)
@@ -292,6 +412,7 @@ class Tablo(Screen):
         layout.add_widget(button15)
         self.add_widget(layout)
 
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class Ders(Screen):
     def __init__(self, screen_manager, **kwargs):
@@ -303,7 +424,7 @@ class Ders(Screen):
         sosyal = Button(text="Sosyal", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.7, "center_y": 0.6})
         din = Button(text="Din", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.3, "center_y": 0.4})
         yabanci_dil = Button(text="Yabancı Dil", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.7, "center_y": 0.4})
-        geri2 = Button(text="geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
+        geri2 = Button(text="Geri", size_hint=(0.1, 0.1), pos_hint={"center_x": 0.1, "center_y": 0.9})
         geri2.bind(on_release=lambda x: setattr(screen_manager, "current", "Menu"))
 
         layout.add_widget(matematik)
@@ -315,17 +436,18 @@ class Ders(Screen):
         layout.add_widget(geri2)
         self.add_widget(layout)
 
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class MenuScreen(Screen):
     def __init__(self, screen_manager, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
-        label1 = Label(text="Dersimatik", size_hint=(0.5, 0.3), pos_hint={"center_x": 0.5, "center_y": 0.9})
-        plan = Button(text="Plan", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.3, "center_y": 0.7})
-        ders = Button(text="Ders", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.7, "center_y": 0.7})
-        notlar = Button(text="Notlar", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.3, "center_y": 0.5})
-        bot = Button(text="Bot", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.7, "center_y": 0.5})
-        tablo = Button(text="Tablo", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.5, "center_y": 0.3})
+        label1 = Label(text="Dersimatik", size_hint=(0.5, 0.3), pos_hint={"center_x": 0.5, "center_y": 0.9}, font_size='32sp')
+        plan = Button(text="Plan", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.3, "center_y": 0.7}, background_color=get_color_from_hex('#4CAF50'))
+        ders = Button(text="Ders", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.7, "center_y": 0.7}, background_color=get_color_from_hex('#2196F3'))
+        notlar = Button(text="Notlar", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.3, "center_y": 0.5}, background_color=get_color_from_hex('#FF9800'))
+        bot = Button(text="Bot", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.7, "center_y": 0.5}, background_color=get_color_from_hex('#9C27B0'))
+        tablo = Button(text="Tablo", size_hint=(0.3, 0.2), pos_hint={"center_x": 0.5, "center_y": 0.3}, background_color=get_color_from_hex('#F44336'))
         plan.bind(on_release=lambda x: setattr(screen_manager, "current", "Plan"))
         ders.bind(on_release=lambda x: setattr(screen_manager, "current", "Ders"))
         notlar.bind(on_release=lambda x: setattr(screen_manager, "current", "Notlar"))
@@ -339,12 +461,18 @@ class MenuScreen(Screen):
         layout.add_widget(tablo)
         self.add_widget(layout)
 
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 class Dersimatik(App):
     def build(self):
+        # Varsayılan Kivy arayüzünü daha mobil odaklı yapmak için arka plan rengi ekleyebiliriz
+        Window.clearcolor = get_color_from_hex("#2A72A169") 
         self.screen_manager = ScreenManager(transition=SlideTransition())
         self.screen_manager.add_widget(MenuScreen(self.screen_manager, name="Menu"))
+        
+        # PLAN EKRANINI GÜNCELLE
         self.screen_manager.add_widget(Plan(self.screen_manager, name="Plan"))
+        
         self.screen_manager.add_widget(Ders(self.screen_manager, name="Ders"))
         self.screen_manager.add_widget(Notlar(self.screen_manager, name="Notlar"))
         self.screen_manager.add_widget(Bot(self.screen_manager, name="Bot"))
@@ -357,6 +485,7 @@ class Dersimatik(App):
         self.screen_manager.current = "Menu"
         return self.screen_manager
 
+#---------------------------------------------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     Dersimatik().run()
